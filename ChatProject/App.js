@@ -10,6 +10,11 @@ import {
   TouchableHighlight,
   Image
 } from 'react-native';
+import * as firebase from "firebase";
+
+console.ignoredYellowBox = [
+  'Setting a timer'
+];
 
 export default class App extends React.Component {
   constructor(props) {
@@ -17,49 +22,84 @@ export default class App extends React.Component {
 
     this.state = {
       sessionUserId: 1,
-      messages: [{
-        userId: 1,
-        userName: "mehmet",
-        message: "sss bir mesaj bu",
-        date: 1531943816307
-      },
-      {
-        userId: 2,
-        userName: "mucahit",
-        message: "Mesaj sss",
-        date: 1531943816307
-      },
-      {
-        userId: 3,
-        userName: "cagdas",
-        message: "Test deneme 2222",
-        date: 1531943816307
-      },
-      {
-        userId: 1,
-        userName: "mehmet",
-        message: "Bu da bir mesaj yani",
-        date: 1531943816307
-      }]
+      sessionUserName: "Mehmet Emin",
+      messages: [],
+      newMessage: ""
     };
+
+    firebase.initializeApp({
+      apiKey: "AIzaSyDVfgP9u9XSeoJw798uNelgD-E7Kp5UziY",
+      authDomain: "react-native-chat-app-974bd.firebaseapp.com",
+      databaseURL: "https://react-native-chat-app-974bd.firebaseio.com",
+      storageBucket: "react-native-chat-app-974bd.appspot.com"
+    });
+  }
+
+  componentDidMount() {
+    var that = this;
+    var messages = [];
+
+    firebase.database().ref('messages').on("child_added", function (data, prevChildKey) {
+      var addedData = data.val();
+      messages.push({
+        userId: addedData.userId,
+        userName: addedData.userName,
+        message: addedData.message,
+        date: addedData.date
+      });
+
+      that.setState({
+        messages: messages
+      });
+    });
   }
 
   onSubmitEditing = (e) => {
-    alert(e.nativeEvent.text);
-    e.nativeEvent.text = "";
+    this.sendMessage();
   }
 
   onPressButtonSendMessage = () => {
+    this.sendMessage();
+  }
 
+  sendMessage() {
+    var that = this;
 
-    
+    firebase.database().ref('messages/' + that.guid()).set({
+      userId: that.state.sessionUserId,
+      userName: that.state.sessionUserName,
+      message: that.state.newMessage,
+      date: new Date().getTime()
+    }, function (error) {
+      that.setState({
+        newMessage: ""
+      });
+
+      if (error) {
+        // The write failed...
+      } else {
+        // Data saved successfully!
+      }
+    });
+  }
+
+  guid() {
+    function s4() {
+      return Math.floor((1 + Math.random()) * 0x10000)
+        .toString(16)
+        .substring(1);
+    }
+    return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
   }
 
   render() {
     return (
       <KeyboardAvoidingView style={styles.container} behavior="padding" enabled>
         <View style={styles.board}>
-          <ScrollView>
+          <ScrollView ref={ref => this.scrollView = ref}
+            onContentSizeChange={(contentWidth, contentHeight) => {
+              this.scrollView.scrollToEnd({ animated: true });
+            }}>
             {
               this.state.messages.map((item, index) =>
                 <View style={[styles.messageItem, this.state.sessionUserId === item.userId ? styles.messageItemRight : null]} key={index}>
@@ -73,7 +113,10 @@ export default class App extends React.Component {
 
           <View style={styles.sendMessageContainer}>
             <View style={styles.sendMessageTextInputContainer}>
-              <TextInput style={styles.messageTextInput} editable={true} underlineColorAndroid={'transparent'} onSubmitEditing={this.onSubmitEditing} />
+              <TextInput style={styles.messageTextInput} editable={true} underlineColorAndroid={'transparent'}
+                onSubmitEditing={this.onSubmitEditing}
+                onChangeText={(text) => this.setState({ newMessage: text })}
+                value={this.state.newMessage} />
             </View>
             <View>
               <TouchableHighlight style={styles.sendTouchable} onPress={this.onPressButtonSendMessage}>
