@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Component } from 'react';
 import {
   Platform,
   StyleSheet,
@@ -16,7 +16,7 @@ console.ignoredYellowBox = [
   'Setting a timer'
 ];
 
-export default class App extends React.Component {
+export default class App extends Component {
   constructor(props) {
     super(props);
 
